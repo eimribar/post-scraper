@@ -29,7 +29,8 @@ export default function SignInPage() {
     const baseUrl = isProduction 
       ? 'https://post-scraper-nine.vercel.app'
       : window.location.origin
-    const redirectUrl = `${baseUrl}/auth/callback`
+    // Redirect to root since Supabase is configured to redirect there
+    const redirectUrl = baseUrl
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -68,7 +69,8 @@ export default function SignInPage() {
     const baseUrl = isProduction 
       ? 'https://post-scraper-nine.vercel.app'
       : window.location.origin
-    const emailRedirectUrl = `${baseUrl}/auth/callback`
+    // Redirect to root since Supabase is configured to redirect there
+    const emailRedirectUrl = baseUrl
 
     if (isSignUp) {
       const { error } = await supabase.auth.signUp({
