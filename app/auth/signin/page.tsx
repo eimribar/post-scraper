@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { isWorkEmail, getWorkEmailErrorMessage } from '@/lib/email-validation'
@@ -19,14 +19,17 @@ export default function SignInPage() {
     // Get the pending URL from sessionStorage
     const pendingUrl = sessionStorage.getItem('pendingPostUrl')
     
-    // Always use /auth/callback as configured in Supabase
-    const baseUrl = process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin
-    const redirectUrl = `${baseUrl}/auth/callback`
-    
     // Store the LinkedIn URL in a cookie that will survive the OAuth redirect
     if (pendingUrl) {
-      document.cookie = `pending_post_url=${encodeURIComponent(pendingUrl)}; path=/; max-age=300; SameSite=Lax`
+      document.cookie = `pending_post_url=${encodeURIComponent(pendingUrl)}; path=/; max-age=300; SameSite=Lax; Secure`
     }
+    
+    // Use hardcoded production URL or fallback to current origin
+    const isProduction = window.location.hostname === 'post-scraper-nine.vercel.app'
+    const baseUrl = isProduction 
+      ? 'https://post-scraper-nine.vercel.app'
+      : window.location.origin
+    const redirectUrl = `${baseUrl}/auth/callback`
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -54,13 +57,18 @@ export default function SignInPage() {
     setIsLoading(true)
 
     const pendingUrl = sessionStorage.getItem('pendingPostUrl')
-    const baseUrl = process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin
-    const emailRedirectUrl = `${baseUrl}/auth/callback`
     
     // Store the LinkedIn URL in a cookie
     if (pendingUrl) {
-      document.cookie = `pending_post_url=${encodeURIComponent(pendingUrl)}; path=/; max-age=300; SameSite=Lax`
+      document.cookie = `pending_post_url=${encodeURIComponent(pendingUrl)}; path=/; max-age=300; SameSite=Lax; Secure`
     }
+    
+    // Use hardcoded production URL or fallback to current origin
+    const isProduction = window.location.hostname === 'post-scraper-nine.vercel.app'
+    const baseUrl = isProduction 
+      ? 'https://post-scraper-nine.vercel.app'
+      : window.location.origin
+    const emailRedirectUrl = `${baseUrl}/auth/callback`
 
     if (isSignUp) {
       const { error } = await supabase.auth.signUp({
