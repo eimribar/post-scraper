@@ -16,6 +16,16 @@ export default function SignInPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
     
+    // Clear any stale auth cookies before starting new OAuth flow
+    // This prevents PKCE code verifier mismatches
+    const authCookies = ['sb-auth-token', 'sb-auth-token-code-verifier']
+    authCookies.forEach(cookieName => {
+      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
+      // Also try with the project-specific prefix
+      document.cookie = `sb-${process.env.NEXT_PUBLIC_ENGAGETRACKER_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
+      document.cookie = `sb-${process.env.NEXT_PUBLIC_ENGAGETRACKER_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token-code-verifier=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
+    })
+    
     // Get the pending URL from sessionStorage
     const pendingUrl = sessionStorage.getItem('pendingPostUrl')
     
@@ -36,6 +46,10 @@ export default function SignInPage() {
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
+        skipBrowserRedirect: false,
+        queryParams: {
+          prompt: 'select_account',
+        },
       },
     })
 

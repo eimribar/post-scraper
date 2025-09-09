@@ -3,6 +3,14 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Skip middleware for OAuth callback routes to prevent PKCE interference
+  const url = request.nextUrl
+  if (url.pathname === '/auth/callback' || 
+      (url.pathname === '/' && url.searchParams.has('code')) ||
+      url.searchParams.has('error_code')) {
+    return NextResponse.next()
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
