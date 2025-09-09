@@ -68,12 +68,8 @@ export async function POST(request: NextRequest) {
           'Authorization': `Bearer ${apifyToken}`,
         },
         body: JSON.stringify({
-          input: {
-            post_url: url,
-            reaction_type: 'ALL',
-            limit: 100,
-            page_number: 1,
-          },
+          post_url: url,
+          reaction_type: 'ALL',
           // Only include webhooks in production
           ...(webhookUrl ? {
             webhooks: [

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { isWorkEmail, getWorkEmailErrorMessage } from '@/lib/email-validation'
@@ -10,8 +10,17 @@ export default function SignInPage() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
+  
+  // Check for error in URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('error') === 'work_email_required') {
+      setError('Please use your work email address. Personal email accounts (Gmail, Yahoo, etc.) are not allowed.')
+    }
+  }, [])
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
@@ -120,6 +129,12 @@ export default function SignInPage() {
             {isSignUp ? 'Start tracking LinkedIn engagement today' : 'Welcome back! Please sign in to continue'}
           </p>
         </div>
+
+        {error && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        )}
 
         <div className="mt-8 space-y-6">
           <button
