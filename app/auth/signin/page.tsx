@@ -22,7 +22,10 @@ export default function SignInPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin}/auth/callback${pendingUrl ? `?post_url=${encodeURIComponent(pendingUrl)}` : ''}`,
+        redirectTo: `${process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin}/auth/callback`,
+        queryParams: pendingUrl ? {
+          post_url: pendingUrl
+        } : undefined,
       },
     })
 

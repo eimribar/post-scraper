@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const postUrl = searchParams.get('post_url')
+  const state = searchParams.get('state')
   const next = searchParams.get('next') ?? '/dashboard'
 
   if (code) {
@@ -12,9 +13,12 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // If we have a post URL, go to loading page
-      if (postUrl) {
-        return NextResponse.redirect(`${origin}/loading?url=${encodeURIComponent(postUrl)}`)
+      // Check if we have a post URL from either query param or state
+      const linkedinUrl = postUrl || state
+      
+      // If we have a LinkedIn URL, go to loading page
+      if (linkedinUrl && linkedinUrl.includes('linkedin.com')) {
+        return NextResponse.redirect(`${origin}/loading?url=${encodeURIComponent(linkedinUrl)}`)
       }
       
       // Otherwise, go directly to dashboard
