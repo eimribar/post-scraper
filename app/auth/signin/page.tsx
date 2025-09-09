@@ -25,10 +25,10 @@ export default function SignInPage() {
     }
     
     // Use the correct redirect URL for production
-    // Simplified to root URL - let Supabase handle the callback naturally
+    // Must redirect to /auth/callback as per Supabase docs
     const redirectTo = window.location.hostname === 'localhost' 
-      ? 'http://localhost:8000'
-      : 'https://post-scraper-nine.vercel.app'
+      ? 'http://localhost:8000/auth/callback'
+      : 'https://post-scraper-nine.vercel.app/auth/callback'
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
