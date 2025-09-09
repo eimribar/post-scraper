@@ -12,12 +12,13 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // Redirect to loading page with post URL if provided
-      const redirectUrl = postUrl 
-        ? `${origin}/loading?url=${encodeURIComponent(postUrl)}`
-        : `${origin}/loading`
+      // If we have a post URL, go to loading page
+      if (postUrl) {
+        return NextResponse.redirect(`${origin}/loading?url=${encodeURIComponent(postUrl)}`)
+      }
       
-      return NextResponse.redirect(redirectUrl)
+      // Otherwise, go directly to dashboard
+      return NextResponse.redirect(`${origin}/dashboard`)
     }
   }
 
