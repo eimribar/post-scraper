@@ -19,13 +19,16 @@ export default function SignInPage() {
     // Get the pending URL from sessionStorage
     const pendingUrl = sessionStorage.getItem('pendingPostUrl')
     
+    // Build the redirect URL with the LinkedIn URL as a parameter
+    const baseUrl = process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin
+    const redirectUrl = pendingUrl 
+      ? `${baseUrl}/?post_url=${encodeURIComponent(pendingUrl)}`
+      : `${baseUrl}/`
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin}/auth/callback`,
-        queryParams: pendingUrl ? {
-          post_url: pendingUrl
-        } : undefined,
+        redirectTo: redirectUrl,
       },
     })
 
@@ -48,13 +51,17 @@ export default function SignInPage() {
     setIsLoading(true)
 
     const pendingUrl = sessionStorage.getItem('pendingPostUrl')
+    const baseUrl = process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin
+    const emailRedirectUrl = pendingUrl 
+      ? `${baseUrl}/?post_url=${encodeURIComponent(pendingUrl)}`
+      : `${baseUrl}/`
 
     if (isSignUp) {
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin}/auth/callback${pendingUrl ? `?post_url=${encodeURIComponent(pendingUrl)}` : ''}`,
+          emailRedirectTo: emailRedirectUrl,
         },
       })
 
