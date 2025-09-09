@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
@@ -25,7 +25,7 @@ interface ScrapingJob {
   error_message?: string
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [user, setUser] = useState<User | null>(null)
@@ -106,9 +106,10 @@ export default function DashboardPage() {
           filter: `id=eq.${jobId}`,
         },
         (payload) => {
-          setCurrentJob(payload.new as ScrapingJob)
+          const newJob = payload.new as ScrapingJob
+          setCurrentJob(newJob)
           
-          if (payload.new?.status === 'completed') {
+          if (newJob?.status === 'completed') {
             loadEngagements(jobId)
           }
         }
@@ -341,5 +342,13 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DashboardContent />
+    </Suspense>
   )
 }

@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
 
-export default function LoadingPage() {
+function LoadingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [user, setUser] = useState<User | null>(null)
@@ -221,5 +221,13 @@ export default function LoadingPage() {
         }
       `}</style>
     </div>
+  )
+}
+
+export default function LoadingPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoadingContent />
+    </Suspense>
   )
 }
