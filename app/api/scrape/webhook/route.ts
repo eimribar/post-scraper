@@ -4,7 +4,7 @@ import crypto from 'crypto'
 
 // Verify webhook signature (optional but recommended for production)
 function verifyWebhookSignature(payload: string, signature: string): boolean {
-  const secret = process.env.WEBHOOK_SECRET
+  const secret = process.env.ENGAGETRACKER_WEBHOOK_SECRET
   if (!secret) return true // Skip verification if no secret is set
   
   const expectedSignature = crypto
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     
     // Fetch data from Apify dataset
-    const apifyToken = process.env.APIFY_API_TOKEN
+    const apifyToken = process.env.ENGAGETRACKER_APIFY_API_TOKEN
     const datasetUrl = `https://api.apify.com/v2/datasets/${datasetId}/items?token=${apifyToken}`
     
     console.log('Fetching dataset from:', datasetUrl.replace(apifyToken!, '[REDACTED]'))

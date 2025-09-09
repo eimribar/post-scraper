@@ -13,26 +13,24 @@ In the Vercel project settings, add these environment variables:
 
 ### Required Environment Variables
 
-Copy these variable names to Vercel and add your actual values:
+Copy these variable names to Vercel and add your actual values from your `.env.local` file:
 
 ```bash
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=(Your Supabase project URL from Supabase dashboard)
-NEXT_PUBLIC_SUPABASE_ANON_KEY=(Your Supabase anon key from API settings)
-SUPABASE_SERVICE_KEY=(Your Supabase service key from API settings)
+# Supabase Configuration (Project-specific names to avoid conflicts)
+NEXT_PUBLIC_ENGAGETRACKER_SUPABASE_URL=(Your Supabase project URL)
+NEXT_PUBLIC_ENGAGETRACKER_SUPABASE_ANON_KEY=(Your Supabase anon key)
+ENGAGETRACKER_SUPABASE_SERVICE_KEY=(Your Supabase service key)
 
 # Apify Configuration
-APIFY_API_TOKEN=(Your Apify API token from account settings)
-APIFY_ACTOR_ID=apimaestro~linkedin-post-reactions
+ENGAGETRACKER_APIFY_API_TOKEN=(Your Apify API token)
+ENGAGETRACKER_APIFY_ACTOR_ID=apimaestro~linkedin-post-reactions
 
 # App Configuration (UPDATE THIS WITH YOUR VERCEL URL)
-NEXT_PUBLIC_APP_URL=https://YOUR-PROJECT-NAME.vercel.app
-WEBHOOK_SECRET=(Generate a random secret key)
-
-# Google OAuth (configured in Supabase Dashboard)
-GOOGLE_CLIENT_ID=(Your Google OAuth client ID)
-GOOGLE_CLIENT_SECRET=(Your Google OAuth client secret)
+NEXT_PUBLIC_ENGAGETRACKER_APP_URL=https://YOUR-PROJECT-NAME.vercel.app
+ENGAGETRACKER_WEBHOOK_SECRET=(Your webhook secret)
 ```
+
+**Note**: Google OAuth credentials are configured in Supabase Dashboard, not in Vercel
 
 **Note**: The actual values are stored securely in your local `.env.local` file
 

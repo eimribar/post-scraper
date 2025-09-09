@@ -22,7 +22,7 @@ export default function SignInPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback${pendingUrl ? `?post_url=${encodeURIComponent(pendingUrl)}` : ''}`,
+        redirectTo: `${process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin}/auth/callback${pendingUrl ? `?post_url=${encodeURIComponent(pendingUrl)}` : ''}`,
       },
     })
 
@@ -51,7 +51,7 @@ export default function SignInPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback${pendingUrl ? `?post_url=${encodeURIComponent(pendingUrl)}` : ''}`,
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin}/auth/callback${pendingUrl ? `?post_url=${encodeURIComponent(pendingUrl)}` : ''}`,
         },
       })
 

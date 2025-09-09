@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check Apify run status
-    const apifyToken = process.env.APIFY_API_TOKEN
+    const apifyToken = process.env.ENGAGETRACKER_APIFY_API_TOKEN
     const runId = job.apify_run_id
 
     if (!runId) {

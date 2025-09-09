@@ -40,12 +40,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize Apify actor
-    const apifyToken = process.env.APIFY_API_TOKEN
-    const actorId = process.env.APIFY_ACTOR_ID || 'apimaestro~linkedin-post-reactions'
+    const apifyToken = process.env.ENGAGETRACKER_APIFY_API_TOKEN
+    const actorId = process.env.ENGAGETRACKER_APIFY_ACTOR_ID || 'apimaestro~linkedin-post-reactions'
     
     // Use polling in development, webhooks in production
     const webhookUrl = process.env.NODE_ENV === 'production' 
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/scrape/webhook`
+      ? `${process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL}/api/scrape/webhook`
       : null
     
     console.log('Apify config:', {
