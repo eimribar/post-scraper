@@ -19,11 +19,14 @@ export default function SignInPage() {
     // Get the pending URL from sessionStorage
     const pendingUrl = sessionStorage.getItem('pendingPostUrl')
     
-    // Build the redirect URL with the LinkedIn URL as a parameter
+    // Always use /auth/callback as configured in Supabase
     const baseUrl = process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin
-    const redirectUrl = pendingUrl 
-      ? `${baseUrl}/?post_url=${encodeURIComponent(pendingUrl)}`
-      : `${baseUrl}/`
+    const redirectUrl = `${baseUrl}/auth/callback`
+    
+    // Store the LinkedIn URL in a cookie that will survive the OAuth redirect
+    if (pendingUrl) {
+      document.cookie = `pending_post_url=${encodeURIComponent(pendingUrl)}; path=/; max-age=300; SameSite=Lax`
+    }
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -52,9 +55,12 @@ export default function SignInPage() {
 
     const pendingUrl = sessionStorage.getItem('pendingPostUrl')
     const baseUrl = process.env.NEXT_PUBLIC_ENGAGETRACKER_APP_URL || window.location.origin
-    const emailRedirectUrl = pendingUrl 
-      ? `${baseUrl}/?post_url=${encodeURIComponent(pendingUrl)}`
-      : `${baseUrl}/`
+    const emailRedirectUrl = `${baseUrl}/auth/callback`
+    
+    // Store the LinkedIn URL in a cookie
+    if (pendingUrl) {
+      document.cookie = `pending_post_url=${encodeURIComponent(pendingUrl)}; path=/; max-age=300; SameSite=Lax`
+    }
 
     if (isSignUp) {
       const { error } = await supabase.auth.signUp({

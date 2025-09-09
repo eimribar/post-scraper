@@ -14,23 +14,25 @@ export default async function LandingPage({
     const supabase = await createClient()
     
     try {
-      const { error } = await supabase.auth.exchangeCodeForSession(params.code)
+      const { data, error } = await supabase.auth.exchangeCodeForSession(params.code)
       
-      if (!error) {
+      if (error) {
+        console.error('Code exchange error:', error.message, error)
+        redirect(`/auth/signin?error=${encodeURIComponent(error.message)}`)
+      }
+      
+      if (data?.session) {
         // Check if we have a LinkedIn URL in the params
         if (params.post_url) {
           redirect(`/loading?url=${encodeURIComponent(params.post_url)}`)
         } else {
-          // Check cookies for stored URL
           redirect('/dashboard')
         }
       }
     } catch (e) {
       console.error('OAuth callback error:', e)
+      redirect(`/auth/signin?error=${encodeURIComponent(String(e))}`)
     }
-    
-    // If we get here, there was an error
-    redirect('/auth/signin?error=auth_failed')
   }
 
   // Check if user is already authenticated

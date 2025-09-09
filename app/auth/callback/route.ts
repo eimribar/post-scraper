@@ -4,25 +4,29 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const postUrl = searchParams.get('post_url')
-  const state = searchParams.get('state')
-  const next = searchParams.get('next') ?? '/dashboard'
-
+  
   if (code) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     
-    if (!error) {
-      // Check if we have a post URL from either query param or state
-      const linkedinUrl = postUrl || state
+    if (error) {
+      console.error('Auth callback error:', error)
+      return NextResponse.redirect(`${origin}/auth/signin?error=${encodeURIComponent(error.message)}`)
+    }
+    
+    if (data?.session) {
+      // Get the pending URL from cookie
+      const cookies = request.headers.get('cookie') || ''
+      const pendingUrlMatch = cookies.match(/pending_post_url=([^;]+)/)
+      const pendingUrl = pendingUrlMatch ? decodeURIComponent(pendingUrlMatch[1]) : null
       
-      // If we have a LinkedIn URL, go to loading page
-      if (linkedinUrl && linkedinUrl.includes('linkedin.com')) {
-        return NextResponse.redirect(`${origin}/loading?url=${encodeURIComponent(linkedinUrl)}`)
-      }
+      // Clear the cookie
+      const response = pendingUrl 
+        ? NextResponse.redirect(`${origin}/loading?url=${encodeURIComponent(pendingUrl)}`)
+        : NextResponse.redirect(`${origin}/dashboard`)
       
-      // Otherwise, go directly to dashboard
-      return NextResponse.redirect(`${origin}/dashboard`)
+      response.cookies.set('pending_post_url', '', { maxAge: 0 })
+      return response
     }
   }
 
