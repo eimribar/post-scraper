@@ -1,192 +1,288 @@
-# EngageTracker - LinkedIn Post Engagement Scraper
+# EngageTracker - LinkedIn Post Scraper
 
-A production-ready LinkedIn post scraper that extracts engagement data (likes, reactions) from any public LinkedIn post and converts them into actionable business leads.
+A production-ready Next.js application that scrapes LinkedIn post engagement data using Supabase authentication and Apify integration.
 
-## Features
+## 🚀 Features
 
-- 🔐 **Secure Authentication**: Google OAuth with work email validation (blocks personal emails)
-- 📊 **Real-time Scraping**: Extract likes and reactions from LinkedIn posts using Apify
-- 💾 **Data Persistence**: Store and manage engagement data in PostgreSQL
-- 🎨 **Modern UI**: Clean, responsive interface built with Tailwind CSS
-- ⚡ **Real-time Updates**: Live progress tracking during scraping operations
-- 📈 **Analytics Dashboard**: View and filter engagement data
-- 🏢 **Enterprise Ready**: Multi-user support with row-level security
-- 🔄 **Smart Data Flow**: Polling + webhook mechanisms for reliable data retrieval
+- **Google OAuth Authentication** with work email validation
+- **LinkedIn Post Scraping** using Apify's linkedin-post-reactions actor
+- **Real-time Dashboard** showing engagement metrics
+- **Multi-user Support** with row-level security
+- **Production Deployment** on Vercel with Supabase backend
 
-## Tech Stack
+## 🛠 Tech Stack
 
-- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, Supabase
-- **Database**: PostgreSQL (via Supabase)
-- **Authentication**: Supabase Auth
-- **Scraping**: Apify LinkedIn Scraper
-- **Hosting**: Vercel
+- **Frontend**: Next.js 15 with App Router, TypeScript, Tailwind CSS
+- **Authentication**: Supabase Auth with Google OAuth
+- **Database**: PostgreSQL via Supabase
+- **Scraping**: Apify (apimaestro~linkedin-post-reactions)
+- **Deployment**: Vercel
 
-## Prerequisites
+## 📋 Prerequisites
 
-- Node.js 18+ and npm
-- Supabase account and project
-- Apify account and API token
-- Google Cloud Console project (for OAuth)
+- Node.js 18+ 
+- Supabase account
+- Apify account
+- Google Cloud Console project for OAuth
 
-## Setup Instructions
+## ⚙️ Environment Variables
 
-### 1. Clone the Repository
+Create a `.env.local` file with these variables:
 
 ```bash
-git clone <your-repo-url>
-cd linkedin-scraper
+# Supabase Configuration
+NEXT_PUBLIC_ENGAGETRACKER_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_ENGAGETRACKER_SUPABASE_ANON_KEY=your-anon-key
+ENGAGETRACKER_SUPABASE_SERVICE_KEY=your-service-key
+
+# Apify Configuration
+ENGAGETRACKER_APIFY_API_TOKEN=apify_api_your-token
+ENGAGETRACKER_APIFY_ACTOR_ID=apimaestro~linkedin-post-reactions
+
+# App Configuration
+NEXT_PUBLIC_ENGAGETRACKER_APP_URL=https://your-app.vercel.app
+ENGAGETRACKER_WEBHOOK_SECRET=your-webhook-secret
+
+# Google OAuth (configured in Supabase Dashboard)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+```
+
+## 🗄️ Database Schema
+
+```sql
+-- Enable Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE scraping_jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE engagement_data ENABLE ROW LEVEL SECURITY;
+
+-- User profiles table
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  full_name TEXT,
+  avatar_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- Job statuses enum
+CREATE TYPE job_status AS ENUM ('pending', 'running', 'completed', 'failed');
+
+-- Scraping jobs table
+CREATE TABLE scraping_jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id) NOT NULL,
+  post_url TEXT NOT NULL,
+  status job_status DEFAULT 'pending',
+  apify_run_id TEXT,
+  apify_dataset_id TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  completed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Engagement data table
+CREATE TABLE engagement_data (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID REFERENCES scraping_jobs(id) NOT NULL,
+  profile_name TEXT NOT NULL,
+  profile_url TEXT,
+  profile_image_url TEXT,
+  reaction_type TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- RLS Policies
+CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can view own jobs" ON scraping_jobs FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create own jobs" ON scraping_jobs FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can view own engagement data" ON engagement_data FOR SELECT USING (
+  EXISTS (SELECT 1 FROM scraping_jobs WHERE scraping_jobs.id = engagement_data.job_id AND scraping_jobs.user_id = auth.uid())
+);
+```
+
+## 🔧 Setup Instructions
+
+### 1. Clone and Install
+
+```bash
+git clone https://github.com/eimribar/post-scraper.git
+cd post-scraper
 npm install
 ```
 
-### 2. Configure Supabase
+### 2. Supabase Configuration
 
-1. Create a new Supabase project at [https://supabase.com](https://supabase.com)
-2. Go to SQL Editor and run the schema from `supabase/schema.sql`
-3. Enable Google OAuth provider:
-   - Go to Authentication > Providers
-   - Enable Google
+1. Create a new Supabase project
+2. Run the database schema above in SQL Editor
+3. Configure Google OAuth provider:
+   - Go to Authentication → Providers → Google
+   - Enable Google provider
    - Add your Google OAuth credentials
 
-### 3. Configure Google OAuth
+### 3. Google OAuth Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create a new project or select existing
-3. Enable Google+ API
-4. Create OAuth 2.0 credentials:
-   - Add authorized redirect URI: `https://[YOUR_SUPABASE_PROJECT].supabase.co/auth/v1/callback`
-5. Copy Client ID and Client Secret to Supabase Auth settings
+2. Create OAuth 2.0 credentials
+3. Add authorized origins:
+   - `https://your-app.vercel.app`
+   - `https://your-project.supabase.co`
+4. Add authorized redirect URI:
+   - `https://your-project.supabase.co/auth/v1/callback`
 
-### 4. Configure Apify
+### 4. Supabase URL Configuration
+
+In your Supabase Dashboard → Authentication → URL Configuration:
+
+- **Site URL**: `https://your-app.vercel.app`
+- **Redirect URLs**: Add these URLs:
+  - `https://your-app.vercel.app/auth/callback`
+  - `http://localhost:8000/auth/callback`
+
+### 5. Apify Setup
 
 1. Sign up for [Apify](https://apify.com)
-2. Get your API token from Account Settings
-3. Note the actor ID (default: `apify/linkedin-scraper`)
+2. Get your API token from Account → Integrations
+3. Use actor ID: `apimaestro~linkedin-post-reactions`
 
-### 5. Set Environment Variables
+## 🚀 Deployment
 
-Copy `.env.local.example` to `.env.local` and fill in your values:
+### Vercel Deployment
+
+1. Connect your GitHub repo to Vercel
+2. Add all environment variables in Vercel dashboard
+3. Deploy
+
+### Production Environment Variables
+
+Make sure these are set in Vercel:
 
 ```bash
-cp .env.local.example .env.local
+NEXT_PUBLIC_ENGAGETRACKER_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_ENGAGETRACKER_SUPABASE_ANON_KEY=your-anon-key
+ENGAGETRACKER_SUPABASE_SERVICE_KEY=your-service-key
+ENGAGETRACKER_APIFY_API_TOKEN=your-apify-token
+ENGAGETRACKER_APIFY_ACTOR_ID=apimaestro~linkedin-post-reactions
+NEXT_PUBLIC_ENGAGETRACKER_APP_URL=https://your-app.vercel.app
+ENGAGETRACKER_WEBHOOK_SECRET=your-webhook-secret
 ```
 
-Update the following variables:
-- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anon key
-- `SUPABASE_SERVICE_KEY`: Your Supabase service key
-- `APIFY_API_TOKEN`: Your Apify API token
-- `APIFY_ACTOR_ID`: The Apify actor ID
-- `NEXT_PUBLIC_APP_URL`: Your app URL (http://localhost:3000 for development)
-- `WEBHOOK_SECRET`: A random secret for webhook verification
+## 🔒 Security Features
 
-### 6. Run Development Server
+- **Work Email Validation**: Only corporate emails allowed (blocks gmail.com, yahoo.com, etc.)
+- **Row Level Security**: Users can only access their own data
+- **OAuth PKCE Flow**: Secure authentication flow
+- **Webhook Validation**: Signed webhooks from Apify
+
+## 🏗️ Architecture
+
+### Authentication Flow
+1. User enters LinkedIn URL on landing page
+2. Redirected to sign-in with Google OAuth
+3. After OAuth, validates work email domain
+4. Personal emails are rejected and signed out
+5. Work emails proceed to dashboard
+
+### Scraping Flow
+1. User submits LinkedIn post URL
+2. Creates job in database
+3. Calls Apify actor with webhook
+4. Apify scrapes data and sends webhook
+5. Data stored in database
+6. Real-time updates via Supabase subscriptions
+
+### File Structure
+
+```
+├── app/
+│   ├── api/scrape/           # Scraping API routes
+│   ├── auth/                 # Authentication pages
+│   ├── dashboard/           # Main dashboard
+│   ├── loading/             # Loading page during scraping
+│   └── page.tsx             # Landing page
+├── lib/
+│   ├── supabase/           # Supabase clients
+│   └── email-validation.ts # Work email validation
+└── middleware.ts           # Auth middleware
+```
+
+## 🔍 Troubleshooting
+
+### OAuth Issues
+- Verify redirect URLs match exactly in Google Console and Supabase
+- Clear browser cookies/cache after config changes
+- Check that `/auth/callback` is excluded from middleware
+
+### Apify Issues  
+- Ensure JSON structure is: `{"post_url": "...", "reaction_type": "ALL"}`
+- Verify webhook URL is accessible from internet
+- Check Apify actor has sufficient credits
+
+### Database Issues
+- Verify RLS policies are enabled
+- Check user permissions in Supabase dashboard
+- Ensure foreign key relationships are correct
+
+## 🧪 Development
 
 ```bash
+# Start development server
 npm run dev
+
+# Build for production
+npm run build
+
+# Run linting
+npm run lint
 ```
 
-Visit [http://localhost:3000](http://localhost:3000)
+## 📝 Recent Updates
 
-## Deployment to Vercel
+- **OAuth Flow**: Completely rebuilt from scratch following Supabase docs
+- **Apify Integration**: Fixed JSON structure (removed input wrapper)  
+- **Email Validation**: Added validation for both OAuth and password signin
+- **Production Ready**: Deployed and tested on Vercel
 
-### 1. Push to GitHub
+## 📊 API Endpoints
 
-```bash
-git add .
-git commit -m "Initial commit"
-git push origin main
-```
+- `GET /` - Landing page
+- `GET /auth/signin` - Sign in page  
+- `GET /auth/callback` - OAuth callback handler
+- `GET /dashboard` - Main dashboard
+- `POST /api/scrape/initiate` - Start scraping job
+- `POST /api/scrape/webhook` - Apify webhook handler
+- `GET /api/scrape/poll` - Poll job status
 
-### 2. Deploy to Vercel
+## 🔑 Key Components
 
-1. Go to [Vercel](https://vercel.com)
-2. Import your GitHub repository
-3. Add environment variables in Vercel dashboard
-4. Deploy
+### Authentication (`/app/auth/`)
+- **signin/page.tsx**: Login with Google OAuth and email/password
+- **callback/route.ts**: Handles OAuth callback and email validation
 
-### 3. Update Supabase Settings
+### API Routes (`/app/api/scrape/`)
+- **initiate/route.ts**: Creates job and calls Apify actor
+- **webhook/route.ts**: Receives data from Apify webhooks
+- **poll/route.ts**: Polling fallback for development
 
-After deployment, update your Supabase OAuth redirect URL:
-- Add: `https://your-app.vercel.app/auth/callback`
+### Core Pages
+- **page.tsx**: Landing page with URL input
+- **dashboard/page.tsx**: Main dashboard with engagement data
+- **loading/page.tsx**: Loading state during scraping
 
-### 4. Update Environment Variables
+## 🗃️ Configuration Files
 
-Update `NEXT_PUBLIC_APP_URL` in Vercel to your production URL.
+- **middleware.ts**: Auth middleware excluding OAuth routes
+- **lib/supabase/**: Client and server Supabase configurations
+- **lib/email-validation.ts**: Work email domain validation
 
-## Project Structure
-
-```
-linkedin-scraper/
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   │   └── scrape/        # Scraping endpoints
-│   ├── auth/              # Authentication pages
-│   ├── dashboard/         # Dashboard page
-│   └── page.tsx           # Landing page
-├── components/            # React components
-├── lib/                   # Utility functions
-│   └── supabase/         # Supabase clients
-├── types/                 # TypeScript types
-├── public/               # Static assets
-└── supabase/             # Database schema
-```
-
-## API Endpoints
-
-- `POST /api/scrape/initiate` - Start a new scraping job
-- `POST /api/scrape/webhook` - Webhook endpoint for Apify results
-
-## Database Schema
-
-- **profiles**: User profiles (extends Supabase auth)
-- **scraping_jobs**: Track scraping job status
-- **posts**: LinkedIn post metadata
-- **engagements**: Individual engagement records
-
-## Security Features
-
-- Row Level Security (RLS) policies
-- Webhook signature verification
-- API route authentication
-- Secure session management
-
-## Usage
-
-1. **Landing Page**: Enter a LinkedIn post URL
-2. **Authentication**: Sign in with Google or email
-3. **Automatic Scraping**: Scraping starts immediately after auth
-4. **Dashboard**: View real-time progress and results
-5. **Data Export**: Export engagement data (coming soon)
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Supabase connection errors**: Check your environment variables
-2. **OAuth redirect issues**: Verify redirect URLs in both Google and Supabase
-3. **Apify errors**: Check API token and actor availability
-4. **Webhook not receiving data**: Ensure webhook URL is publicly accessible
-
-### Development Tips
-
-- Use `npm run dev` for hot-reload development
-- Check browser console for client-side errors
-- Monitor Supabase logs for database issues
-- Test webhook locally using ngrok
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a pull request
+3. Make your changes
+4. Test thoroughly  
+5. Submit a pull request
 
-## License
+## 📄 License
 
-MIT
-
-## Support
-
-For issues and questions, please open a GitHub issue.
+MIT License - see LICENSE file for details.
