@@ -5,51 +5,54 @@ import { cookies } from 'next/headers'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const error = searchParams.get('error')
-  
-  // Handle OAuth errors from provider
-  if (error) {
-    console.error('OAuth provider error:', error)
-    return NextResponse.redirect(`${origin}/auth/signin?error=${encodeURIComponent(error)}`)
-  }
-  
-  if (!code) {
-    return NextResponse.redirect(`${origin}/auth/signin?error=no_code`)
+  const next = searchParams.get('next') ?? '/'
+
+  if (code) {
+    const supabase = await createClient()
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    
+    if (!error) {
+      // Get the pending URL from cookies
+      const cookieStore = await cookies()
+      const pendingUrl = cookieStore.get('pending_post_url')?.value
+      
+      // Clear the pending URL cookie
+      const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
+      const isLocalEnv = process.env.NODE_ENV === 'development'
+      
+      if (isLocalEnv) {
+        // In development, handle the redirect directly
+        const redirectUrl = pendingUrl && pendingUrl.includes('linkedin.com')
+          ? `${origin}/loading?url=${encodeURIComponent(pendingUrl)}`
+          : `${origin}/dashboard`
+        
+        // Clear the cookie by setting it with maxAge 0
+        const response = NextResponse.redirect(redirectUrl)
+        response.cookies.set('pending_post_url', '', { 
+          maxAge: 0,
+          path: '/'
+        })
+        
+        return response
+      } else {
+        // In production, redirect to the forwarded host
+        const productionOrigin = forwardedHost ? `https://${forwardedHost}` : origin
+        const redirectUrl = pendingUrl && pendingUrl.includes('linkedin.com')
+          ? `${productionOrigin}/loading?url=${encodeURIComponent(pendingUrl)}`
+          : `${productionOrigin}/dashboard`
+        
+        // Clear the cookie by setting it with maxAge 0
+        const response = NextResponse.redirect(redirectUrl)
+        response.cookies.set('pending_post_url', '', { 
+          maxAge: 0,
+          path: '/'
+        })
+        
+        return response
+      }
+    }
   }
 
-  const supabase = await createClient()
-  
-  try {
-    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-    
-    if (exchangeError) {
-      console.error('Code exchange error:', exchangeError)
-      return NextResponse.redirect(`${origin}/auth/signin?error=${encodeURIComponent(exchangeError.message)}`)
-    }
-    
-    if (!data?.session) {
-      return NextResponse.redirect(`${origin}/auth/signin?error=no_session`)
-    }
-    
-    // Successfully authenticated - check for pending URL in cookies
-    const cookieStore = await cookies()
-    const pendingUrl = cookieStore.get('pending_post_url')?.value
-    
-    // Clear the pending URL cookie
-    const response = pendingUrl && pendingUrl.includes('linkedin.com')
-      ? NextResponse.redirect(`${origin}/loading?url=${encodeURIComponent(pendingUrl)}`)
-      : NextResponse.redirect(`${origin}/dashboard`)
-    
-    response.cookies.set('pending_post_url', '', { 
-      maxAge: 0,
-      path: '/'
-    })
-    
-    return response
-    
-  } catch (err) {
-    // This should not catch NEXT_REDIRECT errors since we're using NextResponse.redirect
-    console.error('Unexpected error in auth callback:', err)
-    return NextResponse.redirect(`${origin}/auth/signin?error=unexpected_error`)
-  }
+  // Return the user to an error page with instructions
+  return NextResponse.redirect(`${origin}/auth/signin?error=auth_failed`)
 }

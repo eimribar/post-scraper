@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { isWorkEmail, getWorkEmailErrorMessage } from '@/lib/email-validation'
@@ -16,39 +16,26 @@ export default function SignInPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
     
-    // Clear any stale auth cookies before starting new OAuth flow
-    // This prevents PKCE code verifier mismatches
-    const authCookies = ['sb-auth-token', 'sb-auth-token-code-verifier']
-    authCookies.forEach(cookieName => {
-      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
-      // Also try with the project-specific prefix
-      document.cookie = `sb-${process.env.NEXT_PUBLIC_ENGAGETRACKER_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
-      document.cookie = `sb-${process.env.NEXT_PUBLIC_ENGAGETRACKER_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token-code-verifier=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
-    })
-    
     // Get the pending URL from sessionStorage
     const pendingUrl = sessionStorage.getItem('pendingPostUrl')
     
     // Store the LinkedIn URL in a cookie that will survive the OAuth redirect
     if (pendingUrl) {
-      document.cookie = `pending_post_url=${encodeURIComponent(pendingUrl)}; path=/; max-age=300; SameSite=Lax; Secure`
+      document.cookie = `pending_post_url=${encodeURIComponent(pendingUrl)}; path=/; max-age=300; SameSite=Lax`
     }
     
-    // Use hardcoded production URL or fallback to current origin
-    const isProduction = window.location.hostname === 'post-scraper-nine.vercel.app'
-    const baseUrl = isProduction 
-      ? 'https://post-scraper-nine.vercel.app'
-      : window.location.origin
-    // Redirect to root since Supabase is configured to redirect there
-    const redirectUrl = baseUrl
+    // Use the correct redirect URL for production
+    const redirectTo = window.location.hostname === 'localhost' 
+      ? 'http://localhost:8000/auth/callback'
+      : 'https://post-scraper-nine.vercel.app/auth/callback'
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: false,
+        redirectTo,
         queryParams: {
-          prompt: 'select_account',
+          access_type: 'offline',
+          prompt: 'consent',
         },
       },
     })
@@ -75,23 +62,20 @@ export default function SignInPage() {
     
     // Store the LinkedIn URL in a cookie
     if (pendingUrl) {
-      document.cookie = `pending_post_url=${encodeURIComponent(pendingUrl)}; path=/; max-age=300; SameSite=Lax; Secure`
+      document.cookie = `pending_post_url=${encodeURIComponent(pendingUrl)}; path=/; max-age=300; SameSite=Lax`
     }
     
-    // Use hardcoded production URL or fallback to current origin
-    const isProduction = window.location.hostname === 'post-scraper-nine.vercel.app'
-    const baseUrl = isProduction 
-      ? 'https://post-scraper-nine.vercel.app'
-      : window.location.origin
-    // Redirect to root since Supabase is configured to redirect there
-    const emailRedirectUrl = baseUrl
+    // Use the correct redirect URL for production
+    const emailRedirectTo = window.location.hostname === 'localhost' 
+      ? 'http://localhost:8000/auth/callback'
+      : 'https://post-scraper-nine.vercel.app/auth/callback'
 
     if (isSignUp) {
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: emailRedirectUrl,
+          emailRedirectTo,
         },
       })
 
@@ -111,7 +95,7 @@ export default function SignInPage() {
       } else if (data.user) {
         // Successful sign in
         if (pendingUrl) {
-          router.push(`/dashboard?url=${encodeURIComponent(pendingUrl)}`)
+          router.push(`/loading?url=${encodeURIComponent(pendingUrl)}`)
         } else {
           router.push('/dashboard')
         }
