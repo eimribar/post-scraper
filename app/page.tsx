@@ -5,19 +5,21 @@ import LandingPageClient from './LandingPageClient'
 export default async function LandingPage({
   searchParams,
 }: {
-  searchParams: { code?: string; error?: string; post_url?: string }
+  searchParams: Promise<{ code?: string; error?: string; post_url?: string }>
 }) {
+  const params = await searchParams
+  
   // Handle OAuth callback if code is present
-  if (searchParams.code) {
+  if (params.code) {
     const supabase = await createClient()
     
     try {
-      const { error } = await supabase.auth.exchangeCodeForSession(searchParams.code)
+      const { error } = await supabase.auth.exchangeCodeForSession(params.code)
       
       if (!error) {
         // Check if we have a LinkedIn URL in the params
-        if (searchParams.post_url) {
-          redirect(`/loading?url=${encodeURIComponent(searchParams.post_url)}`)
+        if (params.post_url) {
+          redirect(`/loading?url=${encodeURIComponent(params.post_url)}`)
         } else {
           // Check cookies for stored URL
           redirect('/dashboard')
