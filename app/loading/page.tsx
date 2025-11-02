@@ -1,25 +1,25 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { User } from '@supabase/supabase-js'
+import { useUser } from '@clerk/nextjs'
 
 function LoadingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [user, setUser] = useState<User | null>(null)
+  const { user, isLoaded } = useUser()
   const [status, setStatus] = useState('Initializing...')
   const [jobId, setJobId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pollCount, setPollCount] = useState(0)
-  
-  const supabase = createClient()
+
   const postUrl = searchParams.get('url') || sessionStorage.getItem('pendingPostUrl')
 
   useEffect(() => {
-    initializeAndScrape()
-  }, [])
+    if (isLoaded) {
+      initializeAndScrape()
+    }
+  }, [isLoaded])
 
   useEffect(() => {
     if (jobId && !error) {
@@ -35,15 +35,17 @@ function LoadingContent() {
     try {
       // Check authentication
       setStatus('Verifying authentication...')
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        router.push('/auth/signin')
+
+      if (!isLoaded) {
+        // Wait for Clerk to load
         return
       }
-      
-      setUser(user)
-      
+
+      if (!user) {
+        router.push('/sign-in')
+        return
+      }
+
       if (!postUrl) {
         // No URL to scrape, go directly to dashboard
         router.push('/dashboard')
@@ -62,7 +64,7 @@ function LoadingContent() {
         const { jobId: newJobId } = await response.json()
         setJobId(newJobId)
         setStatus('Analyzing post engagement...')
-        
+
         // Clear the URL from sessionStorage
         sessionStorage.removeItem('pendingPostUrl')
       } else {

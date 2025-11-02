@@ -1,19 +1,21 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClerkSupabaseClientSSR } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
 export async function POST(request: NextRequest) {
   console.log('=== SCRAPE INITIATE START ===')
-  
+
   try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    // Check authentication with Clerk (Official 2025 Pattern)
+    const { userId, getToken } = await auth()
+    if (!userId) {
       console.error('No authenticated user')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.log('User authenticated:', user.id)
+    console.log('User authenticated:', userId)
+
+    // Create Supabase client with Clerk session token
+    const supabase = createClerkSupabaseClientSSR(getToken)
 
     const { url } = await request.json()
     console.log('LinkedIn URL received:', url)
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
     const { data: job, error: jobError } = await supabase
       .from('scraping_jobs')
       .insert({
-        user_id: user.id,
+        clerk_user_id: userId,
         post_url: url,
         status: 'pending',
       })

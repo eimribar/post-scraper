@@ -1,0 +1,197 @@
+/* Card Canvas Container */
+.card-canvas {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated Backdrop */
+.card-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle at 0% 0%,
+    hsl(200 100% 80% / 0.08),
+    transparent 50%
+  ),
+  radial-gradient(
+    circle at 100% 100%,
+    hsl(200 100% 70% / 0.08),
+    transparent 50%
+  ),
+  radial-gradient(
+    circle at 100% 0%,
+    hsl(200 100% 80% / 0.05),
+    transparent 50%
+  ),
+  radial-gradient(
+    circle at 0% 100%,
+    hsl(200 100% 70% / 0.05),
+    transparent 50%
+  );
+  filter: url(#unopaq) blur(8px);
+  animation: shift 5s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes shift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(10%, 10%) scale(1.1);
+  }
+  50% {
+    transform: translate(-5%, 5%) scale(0.9);
+  }
+  75% {
+    transform: translate(5%, -10%) scale(1.05);
+  }
+}
+
+/* Glow Card */
+.glow-card {
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+}
+
+.card-content {
+  position: relative;
+  z-index: 2;
+}
+
+/* Border Elements */
+.border-element {
+  position: absolute;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(200 100% 70% / 0.6),
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* Animated Borders */
+.border-left,
+.border-right {
+  width: 2px;
+  height: 40%;
+  top: 0;
+  animation: borderVertical 3s linear infinite;
+}
+
+.border-top,
+.border-bottom {
+  height: 2px;
+  width: 40%;
+  left: 0;
+  animation: borderHorizontal 3s linear infinite;
+}
+
+.border-left {
+  left: 0;
+}
+
+.border-right {
+  right: 0;
+  animation-delay: 1.5s;
+}
+
+.border-top {
+  top: 0;
+}
+
+.border-bottom {
+  bottom: 0;
+  animation-delay: 1.5s;
+}
+
+/* Corner Dots */
+.glow-card::before,
+.glow-card::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: hsl(200 100% 70%);
+  border-radius: 50%;
+  box-shadow: 0 0 10px hsl(200 100% 70%);
+  z-index: 3;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.glow-card::before {
+  top: -3px;
+  left: -3px;
+}
+
+.glow-card::after {
+  bottom: -3px;
+  right: -3px;
+  animation-delay: 1s;
+}
+
+@keyframes borderVertical {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 60%;
+    opacity: 0;
+  }
+}
+
+@keyframes borderHorizontal {
+  0% {
+    left: 0;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: 60%;
+    opacity: 0;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.5;
+  }
+}
+
+/* Additional Glow Effect on Hover */
+.glow-card:hover .border-element {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(200 100% 70% / 0.9),
+    transparent
+  );
+}
+
+.glow-card:hover::before,
+.glow-card:hover::after {
+  box-shadow: 0 0 20px hsl(200 100% 70%);
+}

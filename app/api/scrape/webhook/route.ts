@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 
@@ -42,8 +42,6 @@ export async function POST(request: NextRequest) {
     if (!jobId || !datasetId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
-
-    const supabase = await createClient()
     
     // Fetch data from Apify dataset
     const apifyToken = process.env.ENGAGETRACKER_APIFY_API_TOKEN
@@ -60,28 +58,28 @@ export async function POST(request: NextRequest) {
 
     if (!datasetResponse.ok) {
       console.error('Failed to fetch Apify dataset')
-      
-      await supabase
+
+      await supabaseAdmin
         .from('scraping_jobs')
-        .update({ 
+        .update({
           status: 'failed',
           error_message: 'Failed to fetch scraping results',
           completed_at: new Date().toISOString()
         })
         .eq('id', jobId)
-      
+
       return NextResponse.json({ error: 'Failed to fetch dataset' }, { status: 500 })
     }
 
     const scrapedData = await datasetResponse.json()
-    
+
     console.log(`Dataset fetched: ${Array.isArray(scrapedData) ? scrapedData.length : 0} items`)
     if (scrapedData.length > 0) {
       console.log('First item sample:', JSON.stringify(scrapedData[0]).substring(0, 300))
     }
-    
+
     // Get the job details
-    const { data: job } = await supabase
+    const { data: job } = await supabaseAdmin
       .from('scraping_jobs')
       .select('*')
       .eq('id', jobId)
@@ -92,18 +90,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if post exists, if not create it
-    const { data: existingPost } = await supabase
+    const { data: existingPost } = await supabaseAdmin
       .from('posts')
       .select('id')
       .eq('url', job.post_url)
       .single()
-    
+
     let postId = existingPost?.id
-    
+
     if (!postId) {
       // Extract post info from metadata if available
       const postMetadata = scrapedData[0]?._metadata || {}
-      const { data: newPost } = await supabase
+      const { data: newPost } = await supabaseAdmin
         .from('posts')
         .insert({
           url: job.post_url,
@@ -115,7 +113,7 @@ export async function POST(request: NextRequest) {
         })
         .select('id')
         .single()
-      
+
       postId = newPost?.id
     }
 
@@ -123,7 +121,7 @@ export async function POST(request: NextRequest) {
     const engagements = scrapedData.map((item: any) => ({
       post_id: postId,
       scraping_job_id: jobId,
-      user_id: job.user_id,
+      clerk_user_id: job.clerk_user_id,
       linkedin_profile_url: item.reactor?.profile_url || '',
       name: item.reactor?.name || 'Unknown User',
       headline: item.reactor?.headline || '',
@@ -135,19 +133,19 @@ export async function POST(request: NextRequest) {
 
     // Batch insert engagements
     if (engagements.length > 0) {
-      const { error: insertError } = await supabase
+      const { error: insertError } = await supabaseAdmin
         .from('engagements')
         .insert(engagements)
-      
+
       if (insertError) {
         console.error('Error inserting engagements:', insertError)
       }
     }
 
     // Update job status to completed
-    await supabase
+    await supabaseAdmin
       .from('scraping_jobs')
-      .update({ 
+      .update({
         status: 'completed',
         completed_at: new Date().toISOString()
       })

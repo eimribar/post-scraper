@@ -1,17 +1,19 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClerkSupabaseClientSSR } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
 export async function POST(request: NextRequest) {
   console.log('=== POLL SCRAPE STATUS START ===')
-  
+
   try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    // Check authentication with Clerk (Official 2025 Pattern)
+    const { userId, getToken } = await auth()
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Create Supabase client with Clerk session token
+    const supabase = createClerkSupabaseClientSSR(getToken)
 
     const { jobId } = await request.json()
     if (!jobId) {
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
       .from('scraping_jobs')
       .select('*')
       .eq('id', jobId)
-      .eq('user_id', user.id)
+      .eq('clerk_user_id', userId)
       .single()
 
     if (jobError || !job) {
@@ -179,7 +181,7 @@ export async function POST(request: NextRequest) {
       const engagements = scrapedData.map((item: any) => ({
         post_id: postId,
         scraping_job_id: jobId,
-        user_id: job.user_id,
+        clerk_user_id: userId,
         linkedin_profile_url: item.reactor?.profile_url || '',
         name: item.reactor?.name || 'Unknown User',
         headline: item.reactor?.headline || '',
